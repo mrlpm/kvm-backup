@@ -34,13 +34,23 @@ while getopts ${optstring} arg; do
       usage
       ;;
     :)
-      echo "Option -$OPTARG requires an argument." >&2 ;;
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
   esac
 done
 
+if [ ! -f ${CONFIG} ];
+then
+  echo "Configuration file doesn't exits"
+  logger --tag $(basename $0) --priority "local3.err" "Configuration file doesn't exits ${CONFIG}"
+  exit 2
+fi
+logger --tag $(basename $0) --priority "local3.info" "Loading configuration file ${CONFIG}"
 source ${CONFIG}
 
 for vm in "${vms[@]}"; do
   echo ${vm}
 done
 echo ${TIME_SHUTDOWN}
+echo ${SSHUSER}
