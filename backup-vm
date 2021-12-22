@@ -1,11 +1,13 @@
 #!/bin/bash
 
 VERSION=0.1
+CONFIG=/etc/kvm-backup.conf
 
 function usage {
-        echo "Usage: $(basename $0) [-t|-h|-v] -n" 2>&1
+        echo "Usage: $(basename $0) [-t|-c|-h|-v] -n" 2>&1
         echo '   -n    virtual machine name'
         echo '   -t    time in seconds to wait virtual machine shutdown'
+        echo '   -c    configuration file path'
         echo '   -h    shows this help and exit'
         echo '   -v    shows version and exit'
         exit 1
@@ -16,12 +18,13 @@ if [[ ${#} -eq 0 ]]; then
 fi
 
 # Define list of arguments expected in the input
-optstring=":n:t:hv"
+optstring=":n:t:hv:c:"
 
 while getopts ${optstring} arg; do
   case "${arg}" in
     n) vms+=("${OPTARG}") ;;
     t) TIME_SHUTDOWN=${OPTARG} ;;
+    c) CONFIG=${OPTARG} ;;
     h) usage ;;
     v) echo "Version: ${VERSION}" ;;
 
@@ -34,6 +37,8 @@ while getopts ${optstring} arg; do
       echo "Option -$OPTARG requires an argument." >&2 ;;
   esac
 done
+
+source ${CONFIG}
 
 for vm in "${vms[@]}"; do
   echo ${vm}
