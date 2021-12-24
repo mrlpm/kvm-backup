@@ -3,6 +3,7 @@
 VERSION=0.1
 CONFIG=/etc/kvm-backup.conf
 SCRIPT=$(basename "$0")
+TIME_SHUTDOWN=60
 
 function usage {
         echo "Usage: ${SCRIPT} [-t|-c|-h|-v] -n" 2>&1
@@ -110,39 +111,55 @@ function make_config_backup {
 function get_disks {
   log_message "info" "Getting disks"
   for disk in $(virsh domblklist --details "${vm}"|awk '/dev/ {print $4}' | xargs); do
-    disks+=(${disk})
+    disks+=("${disk}")
     log_message "info" "Disks: ${disk} found for vm ${vm}"
   done
 }
 
 function get_vgs {
   log_message "info" "Getting volumes groups"
-  for disk in ${disks[@]}; do
-    vgs+=($(lvdisplay -v "${disk}" 2>/dev/null|awk '/VG/ {print $3}'))
-    disk_size+=($(lvdisplay -v "${disk}" 2>/dev/null|awk '/LV Size/ {print $3}'))
+  for disk in "${disks[@]}"; do
+    vgs+=( "$(lvdisplay -v "${disk}" 2>/dev/null|awk '/VG/ {print $3}')" )
+    disk_size+=( "$(lvdisplay -v "${disk}" 2>/dev/null|awk '/LV Size/ {print $3}')" )
   done
   for ((i=0; i<${#vgs[@]}; i++)); do
     log_message "info" "Volume group ${vgs[$i]} found for disk ${disks[$i]} with size ${disk_size[$i]}"
   done
 }
 
-function calc_free_space {
-  log_message "info" "Calculating free space"
-  for vg in ${vgs[@]}; do
-    free_space+=($(vgs --noheadings -o vg_free "${vg}"))
-  done
-  for ((i=0; i<${#vgs[@]}; i++)); do
-    log_message "info" "Free space for volume group ${vgs[$i]} is ${free_space[$i]}"
-  done
+function get_vm_status {
+  log_message "info" "Getting vm status"
+  vm_status=$(virsh domstate "${vm}")
+  log_message "info" "vm ${vm} status is ${vm_status}"
 }
 
 function shutdown_vm {
   log_message "info" "Shutting down virtual machine ${vm}"
-  if ! virsh shutdown "${vm}"; then
+  if ! virsh shutdown "${vm}" &>/dev/null; then
     log_message "error" "Error shutting down virtual machine ${vm}"
     exit 5
   fi
+  log_message "info" "Waiting ${TIME_SHUTDOWN} seconds for virtual machine ${vm} to shutdown"
   sleep "${TIME_SHUTDOWN}"
+  get_vm_status
+}
+
+function start_vm {
+  log_message "info" "Starting virtual machine ${vm}"
+  if ! virsh start "${vm}" &>/dev/null; then
+    log_message "error" "Error starting virtual machine ${vm}"
+    exit 6
+  fi
+  get_vm_status
+}
+
+function generate_snapshot {
+  log_message "info" "Creating snapshot for virtual machine ${vm}"
+  if ! virsh snapshot-create-as "${vm}" "${vm}-${timestamp}"; then
+    log_message "error" "Error creating snapshot for virtual machine ${vm}"
+    exit 7
+  fi
+  log_message "info" "Snapshot ${vm}-${timestamp} created"
 }
 
 # Main Script
@@ -153,4 +170,4 @@ prepare_dirs
 make_config_backup
 get_disks
 get_vgs
-calc_free_space
+shutdown_vm
