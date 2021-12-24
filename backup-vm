@@ -153,14 +153,6 @@ function start_vm {
   get_vm_status
 }
 
-function generate_snapshot {
-  log_message "info" "Creating snapshot for virtual machine ${vm}"
-  if ! virsh snapshot-create-as "${vm}" "${vm}-${timestamp}"; then
-    log_message "error" "Error creating snapshot for virtual machine ${vm}"
-    exit 7
-  fi
-  log_message "info" "Snapshot ${vm}-${timestamp} created"
-}
 
 # Main Script
 load_config
