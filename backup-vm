@@ -4,7 +4,7 @@ VERSION=0.1
 CONFIG=/etc/kvm-backup.conf
 
 function usage {
-        echo "Usage: $(basename $0) [-t|-c|-h|-v] -n" 2>&1
+        echo "Usage: $(basename "$0") [-t|-c|-h|-v] -n" 2>&1
         echo '   -n    virtual machine name'
         echo '   -t    time in seconds to wait virtual machine shutdown'
         echo '   -c    configuration file path'
@@ -18,7 +18,7 @@ if [[ ${#} -eq 0 ]]; then
 fi
 
 # Define list of arguments expected in the input
-optstring=":n:t:hv:c:"
+optstring=":n:t:c:hv"
 
 while getopts ${optstring} arg; do
   case "${arg}" in
@@ -26,8 +26,9 @@ while getopts ${optstring} arg; do
     t) TIME_SHUTDOWN=${OPTARG} ;;
     c) CONFIG=${OPTARG} ;;
     h) usage ;;
-    v) echo "Version: ${VERSION}" ;;
-
+    v) echo "Version: ${VERSION}"
+       exit 0 
+       ;;
     \?)
       echo "Invalid option: -${OPTARG}."
       echo
@@ -40,17 +41,18 @@ while getopts ${optstring} arg; do
   esac
 done
 
-if [ ! -f ${CONFIG} ];
+if [ ! -f "${CONFIG}" ];
 then
   echo "Configuration file doesn't exits"
-  logger --tag $(basename $0) --priority "local3.err" "Configuration file doesn't exits ${CONFIG}"
+  logger --tag "$(basename "$0")" --priority "local3.err" "Configuration file doesn't exits ${CONFIG}"
   exit 2
 fi
-logger --tag $(basename $0) --priority "local3.info" "Loading configuration file ${CONFIG}"
-source ${CONFIG}
+logger --tag "$(basename "$0")" --priority "local3.info" "Loading configuration file ${CONFIG}"
+# shellcheck source=/dev/null
+source "${CONFIG}"
 
 for vm in "${vms[@]}"; do
-  echo ${vm}
+  echo "${vm}"
 done
-echo ${TIME_SHUTDOWN}
-echo ${SSHUSER}
+echo "${TIME_SHUTDOWN}"
+echo "${SSHUSER}"
