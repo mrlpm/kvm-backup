@@ -172,7 +172,7 @@ function take_snapshot {
     log_message "info" "Checking volume group ${vgs[$i]} for free space"
     if [ "${vg_free_space}" -gt "${disk_size[$i]}" ]; then
       log_message "info" "Volume group ${vgs[$i]} has enough free space to take snapshot"
-      if ! lvcreate -s -n "${disks_names[$i]}Snap" -L "${disk_size[$i]}G" "${disks[$i]}" 2>/dev/null; then
+      if ! lvcreate -s -n "${disks_names[$i]}Snap" -L "${disk_size[$i]}G" "${disks[$i]}" &>/dev/null; then
         log_message "error" "Error taking snapshot of virtual machine ${vm}"
       exit 8
     fi
@@ -189,18 +189,18 @@ function take_snapshot {
 
 function delete_snapshots {
   log_message "info" "Deleting snapshot ${disks_names[$i]}Snap"
-  if ! lvremove -f "${snapshots}" 2>/dev/null; then
+  if ! lvremove -f "${snapshots}" &>/dev/null; then
     log_message "error" "Error deleting snapshot of virtual machine ${vm}"
     exit 9
   fi
 }
 
 function convert_to_qcow2 {
-  for snap in "${snapshots}"; do
+  for snap in ${snapshots}; do
     snap_name=$(echo "${snap}" | awk -F"/" '{print $NF}')
     log_message "info" "Converting snapshot ${snap} to qcow2"
-    log_message "info" "Using command: qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2""
-    if ! qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
+    log_message "info" "Using command: qemu-img convert ${qemu_options} ${snap} ${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"
+    if ! qemu-img convert "${qemu_options}" "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
       log_message "error" "Error converting snapshot ${snap} to qcow2"
       delete_snapshots
       exit 10
