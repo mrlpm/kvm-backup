@@ -86,7 +86,30 @@ function load_config {
   source "${CONFIG}"
 }
 
+function prepare_dirs {
+  timestamp=$(date +%Y%m%d%H%M%S)
+  if [ ! -d "${NFSEXPORT}/${vm}-${timestamp}" ]; then
+    log_message "info" "Creating backup directory ${NFSEXPORT}/${vm}-${timestamp}"
+    mkdir -p "${NFSEXPORT}/${vm}-${timestamp}"
+    if [ $? -ne 0 ]; then
+      log_message "error" "Error creating backup directory ${NFSEXPORT}/${vm}-${timestamp}"
+      exit 3
+    fi
+  fi
+}
+
+function make_config_backup {
+  log_message "info" "Creating configuration backup in ${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
+  virsh dumpxml "${vm}" > "${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
+  if [ $? -ne 0 ]; then
+    log_message "error" "Error creating configuration backup in ${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
+    exit 4
+  fi
+}
+
 # Main Script
 load_config
 get_qemu_version
 check_vm_exists
+prepare_dirs
+make_config_backup
