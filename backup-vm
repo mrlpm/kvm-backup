@@ -188,11 +188,13 @@ function take_snapshot {
 }
 
 function delete_snapshots {
-  log_message "info" "Deleting snapshot ${disks_names[$i]}Snap"
-  if ! lvremove -f "${snapshots}" &>/dev/null; then
-    log_message "error" "Error deleting snapshot of virtual machine ${vm}"
-    exit 9
-  fi
+  for snapshot in "${snapshots[@]}"; do
+    log_message "info" "Deleting snapshot ${snapshot}"
+    if ! lvremove -f "${snapshot}" &>/dev/null; then
+      log_message "error" "Error deleting snapshot ${snapshot}"
+      exit 9
+    fi
+  done
 }
 
 function convert_to_qcow2 {
@@ -225,6 +227,7 @@ function main {
     log_message "info" "Virtual machine ${vm} is not shut off"
     exit 6
   fi
+  log_message "info" "Backup of virtual machine ${vm} completed"
   exit 0
 }
 
