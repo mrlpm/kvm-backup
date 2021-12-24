@@ -174,12 +174,12 @@ function take_snapshot {
       exit 8
     fi
   done
+  snapshots=$(lvdisplay |grep Snap|awk '/Path/ {print $3}' |xargs)
   start_vm
 }
 
 function delete_snapshots {
   log_message "info" "Deleting snapshot ${disks_names[$i]}Snap"
-  snapshots=$(lvdisplay |grep Snap|awk '/Path/ {print $3}' |xargs)
   if ! lvremove -f "${snapshots}" 2>/dev/null; then
     log_message "error" "Error deleting snapshot of virtual machine ${vm}"
     exit 9
@@ -190,6 +190,7 @@ function convert_to_qcow2 {
   for snap in "${snapshots}"; do
     snap_name=$(echo "${snap}" | awk -F"/" '{print $NF}')
     log_message "info" "Converting snapshot ${snap} to qcow2"
+    log_message "info" "Using command: qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2""
     if ! qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
       log_message "error" "Error converting snapshot ${snap} to qcow2"
       delete_snapshots
