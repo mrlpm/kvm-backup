@@ -109,16 +109,40 @@ function make_config_backup {
 
 function get_disks {
   log_message "info" "Getting disks"
-  disks=$(virsh domblklist --details "${vm}"|awk '/dev/ {print $4}' | xargs)
-  log_message "info" "Disks: ${disks} found for vm ${vm}"
+  for disk in $(virsh domblklist --details "${vm}"|awk '/dev/ {print $4}' | xargs); do
+    disks+=(${disk})
+    log_message "info" "Disks: ${disk} found for vm ${vm}"
+  done
 }
 
 function get_vgs {
   log_message "info" "Getting volumes groups"
-  for disk in ${disks}; do
-    vg=$(lvdisplay -v "${disk}" 2>/dev/null|awk '/VG/ {print $3}' |xargs)
-    log_message "info" "Volume group ${vg} found for disk ${disk}"
+  for disk in ${disks[@]}; do
+    vgs+=($(lvdisplay -v "${disk}" 2>/dev/null|awk '/VG/ {print $3}'))
+    disk_size+=($(lvdisplay -v "${disk}" 2>/dev/null|awk '/LV Size/ {print $3}'))
   done
+  for ((i=0; i<${#vgs[@]}; i++)); do
+    log_message "info" "Volume group ${vgs[$i]} found for disk ${disks[$i]} with size ${disk_size[$i]}"
+  done
+}
+
+function calc_free_space {
+  log_message "info" "Calculating free space"
+  for vg in ${vgs[@]}; do
+    free_space+=($(vgs --noheadings -o vg_free "${vg}"))
+  done
+  for ((i=0; i<${#vgs[@]}; i++)); do
+    log_message "info" "Free space for volume group ${vgs[$i]} is ${free_space[$i]}"
+  done
+}
+
+function shutdown_vm {
+  log_message "info" "Shutting down virtual machine ${vm}"
+  if ! virsh shutdown "${vm}"; then
+    log_message "error" "Error shutting down virtual machine ${vm}"
+    exit 5
+  fi
+  sleep "${TIME_SHUTDOWN}"
 }
 
 # Main Script
@@ -129,3 +153,4 @@ prepare_dirs
 make_config_backup
 get_disks
 get_vgs
+calc_free_space
