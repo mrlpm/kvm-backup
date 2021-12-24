@@ -4,14 +4,16 @@ VERSION=0.1
 CONFIG=/etc/kvm-backup.conf
 SCRIPT=$(basename "$0")
 TIME_SHUTDOWN=60
+VERBOSE=0
 
 function usage {
         echo "Usage: ${SCRIPT} [-t|-c|-h|-v] -n" 2>&1
         echo '   -n    virtual machine name'
         echo '   -t    time in seconds to wait virtual machine shutdown'
         echo '   -c    configuration file path'
+        echo '   -v    verbose output'
         echo '   -h    shows this help and exit'
-        echo '   -v    shows version and exit'
+        echo '   -V    shows version and exit'
         exit 1
 }
 
@@ -20,7 +22,7 @@ if [[ ${#} -eq 0 ]]; then
 fi
 
 # Define list of arguments expected in the input
-optstring=":n:t:c:hv"
+optstring=":n:t:c:hvV"
 
 while getopts ${optstring} arg; do
   case "${arg}" in
@@ -28,7 +30,8 @@ while getopts ${optstring} arg; do
     t) TIME_SHUTDOWN=${OPTARG} ;;
     c) CONFIG=${OPTARG} ;;
     h) usage ;;
-    v) echo "Version: ${VERSION}"
+    v) VERBOSE=1 ;;
+    V) echo "Version: ${VERSION}"
        exit 0 
        ;;
     \?)
@@ -45,9 +48,15 @@ done
 
 function log_message {
   if [ "$1" = "error" ]; then
-    logger -t "${SCRIPT}" -p "local3.err" "$2" 
+    logger -t "${SCRIPT}" -p "local3.err" "$2"
+    if [ ${VERBOSE} -eq 1 ]; then
+      echo "$2"
+    fi 
   elif [ "$1" = "info" ]; then
     logger -t "${SCRIPT}" -p "local3.info" "$2"
+    if [ ${VERBOSE} -eq 1 ]; then
+      echo "$2"
+    fi
   fi
 }
 
