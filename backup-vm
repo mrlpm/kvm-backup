@@ -65,11 +65,11 @@ function get_qemu_version {
     qemu_version=$(${rpm_bin} -q qemu-img |cut -d"-" -f3|cut -d"." -f1)
 
     if [ "${qemu_version}" -ge 3 ]; then
-        qemu_options="-f raw -WcO qcow2"
+        qemu_options='-Wc -O qcow2'
         log_message "info" "qemu version ${qemu_version} or higher detected"
         log_message "info" "using options ${qemu_options}"
     else
-        qemu_options="-f raw -cO qcow2"
+        qemu_options='-c -O qcow2'
         log_message "info" "qemu version ${qemu_version} or lower detected"
         log_message "info" "using options ${qemu_options}"
     fi
@@ -202,7 +202,7 @@ function convert_to_qcow2 {
     snap_name=$(echo "${snap}" | awk -F"/" '{print $NF}')
     log_message "info" "Converting snapshot ${snap} to qcow2"
     log_message "info" "Using command: qemu-img convert ${qemu_options} ${snap} ${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"
-    if ! qemu-img convert "${qemu_options}" "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
+    if ! qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
       log_message "error" "Error converting snapshot ${snap} to qcow2"
       delete_snapshots
       exit 10
