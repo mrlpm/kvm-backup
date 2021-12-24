@@ -90,8 +90,7 @@ function prepare_dirs {
   timestamp=$(date +%Y%m%d%H%M%S)
   if [ ! -d "${NFSEXPORT}/${vm}-${timestamp}" ]; then
     log_message "info" "Creating backup directory ${NFSEXPORT}/${vm}-${timestamp}"
-    mkdir -p "${NFSEXPORT}/${vm}-${timestamp}"
-    if [ $? -ne 0 ]; then
+    if ! mkdir -p "${NFSEXPORT}/${vm}-${timestamp}"; then
       log_message "error" "Error creating backup directory ${NFSEXPORT}/${vm}-${timestamp}"
       exit 3
     fi
@@ -100,33 +99,25 @@ function prepare_dirs {
 
 function make_config_backup {
   log_message "info" "Creating configuration backup in ${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
-  virsh dumpxml "${vm}" > "${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
-  vm_definition_file="${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
-  if [ $? -ne 0 ]; then
+  
+  if ! virsh dumpxml "${vm}" > "${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"; then
     log_message "error" "Error creating configuration backup in ${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
     exit 4
   fi
+  vm_definition_file="${NFSEXPORT}/${vm}-${timestamp}/${vm}.xml"
 }
 
 function get_disks {
   log_message "info" "Getting disks"
-  disks=$(virsh domblklist --details ${vm}|awk '/dev/ {print $4}' | xargs)
+  disks=$(virsh domblklist --details "${vm}"|awk '/dev/ {print $4}' | xargs)
   log_message "info" "Disks: ${disks} found for vm ${vm}"
-  if [ $? -ne 0 ]; then
-    log_message "error" "Error getting disks"
-    exit 5
-  fi
 }
 
 function get_vgs {
   log_message "info" "Getting volumes groups"
   for disk in ${disks}; do
-    vg=$(lvdisplay -v ${disk} 2>/dev/null|awk '/VG/ {print $3}' |xargs)
+    vg=$(lvdisplay -v "${disk}" 2>/dev/null|awk '/VG/ {print $3}' |xargs)
     log_message "info" "Volume group ${vg} found for disk ${disk}"
-    if [ $? -ne 0 ]; then
-      log_message "error" "Error getting volume group"
-      exit 6
-    fi
   done
 }
 
@@ -138,4 +129,3 @@ prepare_dirs
 make_config_backup
 get_disks
 get_vgs
-determine_free_space
