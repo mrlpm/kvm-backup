@@ -2,9 +2,10 @@
 
 VERSION=0.1
 CONFIG=/etc/kvm-backup.conf
+SCRIPT=$(basename "$0")
 
 function usage {
-        echo "Usage: $(basename "$0") [-t|-c|-h|-v] -n" 2>&1
+        echo "Usage: ${SCRIPT} [-t|-c|-h|-v] -n" 2>&1
         echo '   -n    virtual machine name'
         echo '   -t    time in seconds to wait virtual machine shutdown'
         echo '   -c    configuration file path'
@@ -22,7 +23,7 @@ optstring=":n:t:c:hv"
 
 while getopts ${optstring} arg; do
   case "${arg}" in
-    n) vms+=("${OPTARG}") ;;
+    n) vm="${OPTARG}" ;;
     t) TIME_SHUTDOWN=${OPTARG} ;;
     c) CONFIG=${OPTARG} ;;
     h) usage ;;
@@ -41,18 +42,51 @@ while getopts ${optstring} arg; do
   esac
 done
 
-if [ ! -f "${CONFIG}" ];
-then
-  echo "Configuration file doesn't exits"
-  logger --tag "$(basename "$0")" --priority "local3.err" "Configuration file doesn't exits ${CONFIG}"
-  exit 2
-fi
-logger --tag "$(basename "$0")" --priority "local3.info" "Loading configuration file ${CONFIG}"
-# shellcheck source=/dev/null
-source "${CONFIG}"
+function log_message {
+  if [ "$1" = "error" ]; then
+    logger -t "${SCRIPT}" -p "local3.err" "$2" 
+  elif [ "$1" = "info" ]; then
+    logger -t "${SCRIPT}" -p "local3.info" "$2"
+  fi
+}
 
-for vm in "${vms[@]}"; do
-  echo "${vm}"
-done
-echo "${TIME_SHUTDOWN}"
-echo "${SSHUSER}"
+function get_qemu_version {
+    rpm_bin=$(/usr/bin/which rpm)
+    qemu_version=$(${rpm_bin} -q qemu-img |cut -d"-" -f3|cut -d"." -f1)
+
+    if [ "${qemu_version}" -ge 3 ]; then
+        qemu_options="-WcO qcow2"
+        log_message "info" "qemu version ${qemu_version} or higher detected"
+        log_message "info" "using options ${qemu_options}"
+    else
+        qemu_options="-cO qcow2"
+        log_message "info" "qemu version ${qemu_version} or lower detected"
+        log_message "info" "using options ${qemu_options}"
+    fi
+}
+
+function check_vm_exists {
+  if ! virsh list --all | grep -q "${vm}"; then
+      log_message "error" "virtual machine ${vm} not found"
+      exit 1
+  else
+    log_message "info" "virtual machine ${vm} found"
+  fi
+}
+
+function load_config {
+  if [ ! -f "${CONFIG}" ];
+  then
+    echo "Configuration file doesn't exits"
+    log_message "error" "Configuration file doesn't exits ${CONFIG}"
+    exit 2
+  fi
+  log_message "info" "Loading configuration file ${CONFIG}"
+  # shellcheck source=/dev/null
+  source "${CONFIG}"
+}
+
+# Main Script
+load_config
+get_qemu_version
+check_vm_exists
