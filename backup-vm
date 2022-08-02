@@ -202,7 +202,7 @@ function convert_to_qcow2 {
     snap_name=$(echo "${snap}" | awk -F"/" '{print $NF}')
     log_message "info" "Converting snapshot ${snap} to qcow2"
     log_message "info" "Using command: qemu-img convert ${qemu_options} ${snap} ${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"
-    if ! qemu-img convert ${qemu_options} "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
+    if ! qemu-img convert "${qemu_options}" "${snap}" "${NFSEXPORT}/${vm}-${timestamp}/${snap_name}.qcow2"; then
       log_message "error" "Error converting snapshot ${snap} to qcow2"
       delete_snapshots
       exit 10
