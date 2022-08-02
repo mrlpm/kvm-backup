@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/luisperezmarin/kvm-backup/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/luisperezmarin/kvm-backup/actions/workflows/shellcheck.yml)
+![Build Status](https://github.com/luisperezmarin/kvm-backup/actions/workflows/shellcheck.yml/badge.svg)
 
 
 # KVM Virtual Machine Backup
